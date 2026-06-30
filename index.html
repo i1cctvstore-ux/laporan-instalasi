@@ -284,68 +284,64 @@
     }
 
     function updateQuickSelectBadges() {
-      const container = document.getElementById('quickSelectContainer');
-      const badgeList = document.getElementById('badgeList');
-      badgeList.innerHTML = '';
+    const container = document.getElementById('quickSelectContainer');
+    const badgeList = document.getElementById('badgeList');
+    badgeList.innerHTML = '';
 
-      const validGroups = structuredGroups.filter(g => g.images.length > 0);
-
-      if (validGroups.length === 0) {
+    if (structuredGroups.length > 0) {
+        container.style.display = 'block';
+        structuredGroups.forEach(group => {
+            const span = document.createElement('span');
+            span.className = 'subtitle-badge';
+            span.textContent = group.subtitle;
+            span.onclick = () => {
+                document.getElementById('currentSubtitleInput').value = group.subtitle;
+            };
+            badgeList.appendChild(span);
+        });
+    } else {
         container.style.display = 'none';
-        return;
-      }
+    }
+}
 
-      container.style.display = 'block';
-      validGroups.forEach(group => {
-        const badge = document.createElement('span');
-        badge.className = 'subtitle-badge';
-        badge.innerText = group.subtitle;
-        badge.onclick = function() {
-          selectSubtitle(group.subtitle);
-        };
-        badgeList.appendChild(badge);
-      });
+function renderPreviews() {
+   // Ganti fungsi renderPreviews yang lama dengan ini:
+function renderPreviews() {
+    const container = document.getElementById('photoPreviewContainer');
+    container.innerHTML = '';
+    
+    if (structuredGroups.length === 0) {
+        container.innerHTML = '<div id="emptyState" style="font-size:12.5px;color:var(--muted-2);text-align:center;padding:40px 0;margin:auto 0;">Belum ada data foto kelompok.</div>';
+        return;
     }
 
-    function renderPreviews() {
-      const container = document.getElementById('photoPreviewContainer');
-      container.querySelectorAll('.photo-group-box').forEach(item => item.remove());
-
-      structuredGroups = structuredGroups.filter(g => g.images.length > 0);
-
-      if(structuredGroups.length === 0) {
-        document.getElementById('emptyState').style.display = 'block';
-        updateQuickSelectBadges();
-        return;
-      }
-
-      structuredGroups.forEach((group, groupIdx) => {
-        const groupEl = document.createElement('div');
-        groupEl.className = 'photo-group-box';
+    structuredGroups.forEach((group, gIdx) => {
+        const box = document.createElement('div');
+        box.className = 'photo-group-box';
+        box.innerHTML = `<div style="font-weight:bold; margin-bottom:10px;">${group.subtitle}</div>`;
         
-        let headerHtml = `<div style="font-weight:700; color:var(--navy-700); margin-bottom:8px; font-size:12.5px; border-bottom:1px dashed var(--line); padding-bottom:4px; display:flex; justify-content:space-between;">
-                            <span>- SUBJUDUL: ${group.subtitle}</span>
-                            <span style="color:var(--blue-500); font-size:11px; cursor:pointer;" onclick="selectSubtitle('${group.subtitle.replace(/'/g, "\\'")}')">➕ Tambah Foto Lagi</span>
-                          </div>`;
-        let imagesListHtml = `<div style="display:flex; flex-direction:column; gap:6px;">`;
+        // Container untuk grid gambar
+        const imgGrid = document.createElement('div');
+        imgGrid.style.display = 'grid';
+        imgGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(80px, 1fr))';
+        imgGrid.style.gap = '8px';
 
-        group.images.forEach((img, imgIdx) => {
-          imagesListHtml += `
-            <div style="display:flex; align-items:center; gap:10px; background:#fff; padding:6px 10px; border-radius:6px; border:1px solid var(--line-soft);">
-              <div style="width:24px; height:24px; border-radius:4px; overflow:hidden; background:#dde3f0; flex-shrink:0;">
-                <img src="${img.base64}" style="width:100%; height:100%; object-fit:cover;">
-              </div>
-              <div style="flex:1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--navy-950);">${img.name}</div>
-              <div style="color:#c22d24; font-size:12px; cursor:pointer; font-weight:bold;" onclick="removeImage(${groupIdx}, ${imgIdx})">✕</div>
-            </div>
-          `;
+        group.images.forEach((img, iIdx) => {
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            wrapper.innerHTML = `
+                <img src="${img.base64}" style="width:100%; height:80px; object-fit:cover; border-radius:4px; border:1px solid #ccc;">
+                <div onclick="removeImage(${gIdx}, ${iIdx})" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; width:16px; height:16px; font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;">×</div>
+            `;
+            imgGrid.appendChild(wrapper);
         });
         
-        imagesListHtml += `</div>`;
-        groupEl.innerHTML = headerHtml + imagesListHtml;
-        container.appendChild(groupEl);
-      });
-    }
+        box.appendChild(imgGrid);
+        container.appendChild(box);
+    });
+}
+    updateQuickSelectBadges();
+}
 
     function removeImage(groupIdx, imgIdx) {
       structuredGroups[groupIdx].images.splice(imgIdx, 1);
@@ -493,20 +489,30 @@ function triggerUploadWithSubtitleCheck() {
     document.getElementById('fileInput').click();
 }
 
-// Menangani pemilihan file dan kompresi gambar
 function handleFileSelect(event) {
     const files = event.target.files;
     if (!files.length) return;
+    
+    const currentSubtitleInput = document.getElementById('currentSubtitleInput');
+    const currentSubtitle = currentSubtitleInput.value.trim();
+    
+    if (!currentSubtitle) {
+        alert("Harap isi subjudul terlebih dahulu!");
+        return;
+    }
 
-    const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
     document.getElementById('emptyState').style.display = 'none';
 
+    // Mencari grup yang sudah ada (case-insensitive)
     let targetGroup = structuredGroups.find(g => g.subtitle.toLowerCase() === currentSubtitle.toLowerCase());
+    
+    // Jika belum ada, buat baru
     if (!targetGroup) {
         targetGroup = { subtitle: currentSubtitle, images: [] };
         structuredGroups.push(targetGroup);
     }
 
+    // Proses file
     Array.from(files).forEach(file => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -514,22 +520,23 @@ function handleFileSelect(event) {
             img.src = e.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const maxW = 800; // Optimal untuk PDF
+                const maxW = 1000;
                 const scale = maxW / img.width;
                 canvas.width = maxW;
                 canvas.height = img.height * scale;
                 canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                 
-                targetGroup.images.push({
-                    name: file.name,
-                    base64: canvas.toDataURL('image/jpeg', 0.7),
-                    aspect: img.width / img.height
+                targetGroup.images.push({ 
+                    name: file.name, 
+                    base64: canvas.toDataURL('image/jpeg', 0.75), 
+                    aspect: img.width / img.height 
                 });
                 renderPreviews();
             };
         };
         reader.readAsDataURL(file);
     });
+    event.target.value = '';
 }
 
 // Render tampilan preview di UI
