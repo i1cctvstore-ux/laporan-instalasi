@@ -204,10 +204,7 @@
 
   <script>
     let structuredGroups = [];
-
-    // Ganti dengan URL dan KEY dari Project Settings > API di dashboard Supabase Anda
-const supabase = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
-
+    
     function triggerUploadWithSubtitleCheck() {
       const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
       if (!currentSubtitle) {
@@ -484,33 +481,21 @@ const supabase = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co
       doc.save(`${cleanDateFile}_${cleanTitleFile}.pdf`);
     }
 
-    async function simpanKeSupabase() {
-  const tgl = document.getElementById('installDate').value;
-  const nm = document.getElementById('pdfTitle').value;
-  const alm = document.getElementById('custAddress').value;
-  const tkn = document.getElementById('techName').value;
+ // 1. Inisialisasi HANYA SEKALI di bagian paling atas script
+const supabase = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
 
-  if (!tgl || !nm || !alm || !tkn) {
-    alert("Mohon lengkapi semua data Info Laporan sebelum menyimpan!");
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from('laporan_instalasi')
-    .insert([{ 
-      tanggal: tgl, 
-      name: nm, 
-      alamat: alm, 
-      teknisi: tkn 
-    }]);
-
-  if (error) {
-    console.error("Error Supabase:", error);
-    alert("Gagal menyimpan ke database: " + error.message);
-  } else {
-    alert("Data berhasil tersimpan di Supabase!");
-  }
+// 2. Semua fungsi Anda berada di bawah inisialisasi tadi
+function triggerUploadWithSubtitleCheck() {
+    const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
+    if (!currentSubtitle) {
+        alert("Silakan isi atau klik subjudul terlebih dahulu!");
+        return;
+    }
+    document.getElementById('fileInput').click();
 }
+
+// ... sisanya adalah fungsi-fungsi Anda yang lain ...
+// Pastikan tidak ada lagi tulisan "const supabase" di bawah sini
   </script>
 
 </body>
