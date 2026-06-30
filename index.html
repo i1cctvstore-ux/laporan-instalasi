@@ -482,16 +482,16 @@
     }
 
  // 1. Inisialisasi HANYA SEKALI di bagian paling atas script
-const supabase = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
+const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
+async function simpanKeSupabase() {
+  // ... ambil data ...
 
-// 2. Semua fungsi Anda berada di bawah inisialisasi tadi
-function triggerUploadWithSubtitleCheck() {
-    const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
-    if (!currentSubtitle) {
-        alert("Silakan isi atau klik subjudul terlebih dahulu!");
-        return;
-    }
-    document.getElementById('fileInput').click();
+  // Gunakan nama variabel yang baru (supabaseClient)
+  const { data, error } = await supabaseClient
+    .from('laporan_instalasi')
+    .insert([{ tanggal: tgl, name: nm, alamat: alm, teknisi: tkn }]);
+
+  // ... sisa kode ...
 }
 
 // ... sisanya adalah fungsi-fungsi Anda yang lain ...
