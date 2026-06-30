@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Foto → PDF Laporan Instalasi</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --navy-950:#0a1326;
@@ -191,9 +190,6 @@
 
           <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="generatePDF()">
             ⬇ Generate & Download PDF
-            <button class="btn btn-primary" style="width:100%; justify-content:center; background:var(--blue-500); margin-top: 10px;" onclick="simpanKeSupabase()">
-  💾 Simpan ke Database
-</button>
           </button>
           <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:8px;">Format file otomatis: [DD-MM-YYYY]-[Kegiatan_Customer].pdf</div>
         </div>
@@ -204,7 +200,7 @@
 
   <script>
     let structuredGroups = [];
-    
+
     function triggerUploadWithSubtitleCheck() {
       const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
       if (!currentSubtitle) {
@@ -481,21 +477,119 @@
       doc.save(`${cleanDateFile}_${cleanTitleFile}.pdf`);
     }
 
- // 1. Inisialisasi HANYA SEKALI di bagian paling atas script
-const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
-async function simpanKeSupabase() {
-  // ... ambil data ...
+const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'YOUR_SUPABASE_ANON_KEY');
 
-  // Gunakan nama variabel yang baru (supabaseClient)
-  const { data, error } = await supabaseClient
-    .from('laporan_instalasi')
-    .insert([{ tanggal: tgl, name: nm, alamat: alm, teknisi: tkn }]);
+const { jsPDF } = window.jspdf;
 
-  // ... sisa kode ...
+// --- Fungsi Utama ---
+
+// Trigger input file dengan validasi subjudul
+function triggerUploadWithSubtitleCheck() {
+    const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
+    if (!currentSubtitle) {
+        alert("Silakan isi subjudul terlebih dahulu!");
+        return;
+    }
+    document.getElementById('fileInput').click();
 }
 
-// ... sisanya adalah fungsi-fungsi Anda yang lain ...
-// Pastikan tidak ada lagi tulisan "const supabase" di bawah sini
+// Menangani pemilihan file dan kompresi gambar
+function handleFileSelect(event) {
+    const files = event.target.files;
+    if (!files.length) return;
+
+    const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
+    document.getElementById('emptyState').style.display = 'none';
+
+    let targetGroup = structuredGroups.find(g => g.subtitle.toLowerCase() === currentSubtitle.toLowerCase());
+    if (!targetGroup) {
+        targetGroup = { subtitle: currentSubtitle, images: [] };
+        structuredGroups.push(targetGroup);
+    }
+
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxW = 800; // Optimal untuk PDF
+                const scale = maxW / img.width;
+                canvas.width = maxW;
+                canvas.height = img.height * scale;
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                targetGroup.images.push({
+                    name: file.name,
+                    base64: canvas.toDataURL('image/jpeg', 0.7),
+                    aspect: img.width / img.height
+                });
+                renderPreviews();
+            };
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Render tampilan preview di UI
+function renderPreviews() {
+    const container = document.getElementById('photoPreviewContainer');
+    container.innerHTML = '';
+    
+    structuredGroups.forEach((group, gIdx) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'photo-group-box';
+        groupEl.innerHTML = `<div style="font-weight:bold; margin-bottom:5px;">${group.subtitle}</div>`;
+        
+        group.images.forEach((img, iIdx) => {
+            groupEl.innerHTML += `<div style="font-size:11px;">${img.name} <span onclick="removeImage(${gIdx}, ${iIdx})" style="cursor:pointer; color:red;">[X]</span></div>`;
+        });
+        container.appendChild(groupEl);
+    });
+}
+
+function removeImage(gIdx, iIdx) {
+    structuredGroups[gIdx].images.splice(iIdx, 1);
+    if (structuredGroups[gIdx].images.length === 0) structuredGroups.splice(gIdx, 1);
+    renderPreviews();
+}
+
+// Generate PDF
+function generatePDF() {
+    if (structuredGroups.length === 0) return alert("Belum ada foto!");
+    
+    const doc = new jsPDF();
+    doc.text(document.getElementById('pdfTitle').value || "Laporan Instalasi", 14, 20);
+    
+    let y = 30;
+    structuredGroups.forEach(group => {
+        doc.text(group.subtitle, 14, y);
+        y += 10;
+        group.images.forEach((img, i) => {
+            doc.addImage(img.base64, 'JPEG', 14 + (i % 2 * 90), y, 80, 60);
+            if (i % 2 !== 0) y += 70;
+        });
+        y += 20;
+    });
+    doc.save("Laporan.pdf");
+}
+
+// Simpan ke Supabase
+async function simpanKeSupabase() {
+    const { error } = await supabaseClient.from('laporan_instalasi').insert([{
+        tanggal: document.getElementById('installDate').value,
+        nama_kegiatan: document.getElementById('pdfTitle').value,
+        alamat: document.getElementById('custAddress').value,
+        teknisi: document.getElementById('techName').value
+    }]);
+
+    if (error) alert("Gagal simpan: " + error.message);
+    else {
+        alert("Data tersimpan!");
+        generatePDF(); // Download otomatis setelah simpan
+    }
+}
   </script>
 
 </body>
