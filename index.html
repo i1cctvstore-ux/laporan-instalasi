@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Foto → PDF Laporan Instalasi</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --navy-950:#0a1326;
@@ -190,6 +191,9 @@
 
           <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="generatePDF()">
             ⬇ Generate & Download PDF
+            <button class="btn btn-primary" style="width:100%; justify-content:center; background:var(--blue-500); margin-top: 10px;" onclick="simpanKeSupabase()">
+  💾 Simpan ke Database
+</button>
           </button>
           <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:8px;">Format file otomatis: [DD-MM-YYYY]-[Kegiatan_Customer].pdf</div>
         </div>
@@ -200,6 +204,9 @@
 
   <script>
     let structuredGroups = [];
+
+    // Ganti dengan URL dan KEY dari Project Settings > API di dashboard Supabase Anda
+const supabase = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
 
     function triggerUploadWithSubtitleCheck() {
       const currentSubtitle = document.getElementById('currentSubtitleInput').value.trim();
@@ -476,6 +483,34 @@
       
       doc.save(`${cleanDateFile}_${cleanTitleFile}.pdf`);
     }
+
+    async function simpanKeSupabase() {
+  const tgl = document.getElementById('installDate').value;
+  const nm = document.getElementById('pdfTitle').value;
+  const alm = document.getElementById('custAddress').value;
+  const tkn = document.getElementById('techName').value;
+
+  if (!tgl || !nm || !alm || !tkn) {
+    alert("Mohon lengkapi semua data Info Laporan sebelum menyimpan!");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('laporan_instalasi')
+    .insert([{ 
+      tanggal: tgl, 
+      name: nm, 
+      alamat: alm, 
+      teknisi: tkn 
+    }]);
+
+  if (error) {
+    console.error("Error Supabase:", error);
+    alert("Gagal menyimpan ke database: " + error.message);
+  } else {
+    alert("Data berhasil tersimpan di Supabase!");
+  }
+}
   </script>
 
 </body>
