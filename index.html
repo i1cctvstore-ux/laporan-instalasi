@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Sistem Laporan Instalasi</title>
+    <title>Laporan Instalasi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -38,7 +38,8 @@
 </div>
 
 <script>
-    const supabase = supabase.createClient('URL_SUPABASE_ANDA', 'KEY_SUPABASE_ANDA');
+    // Inisialisasi Supabase - Pastikan URL dan KEY Anda benar
+    const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
     let structuredGroups = [];
     const { jsPDF } = window.jspdf;
 
@@ -68,7 +69,7 @@
         structuredGroups.forEach((group, gIdx) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong> <button onclick="tambahFotoKeGrup('${group.subtitle}')" style="font-size:10px; width:auto;">+ TAMBAH</button>`;
+            box.innerHTML = `<strong>${group.subtitle}</strong> <button onclick="tambahFotoKeGrup('${group.subtitle}')" style="font-size:10px; width:auto; padding:2px 5px;">+ TAMBAH</button>`;
             group.images.forEach(img => {
                 box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
             });
@@ -82,35 +83,21 @@
     }
 
     async function simpanKeSupabase() {
-        try {
-            let fotoUrls = [];
-            // Upload foto ke Storage
-            for (let group of structuredGroups) {
-                for (let imgObj of group.images) {
-                    const fileName = `foto_${Date.now()}_${Math.random()}.jpg`;
-                    const blob = await (await fetch(imgObj.base64)).blob();
-                    const { error: upErr } = await supabase.storage.from('laporan-foto').upload(fileName, blob);
-                    if (upErr) throw upErr;
-                    const { data: urlData } = supabase.storage.from('laporan-foto').getPublicUrl(fileName);
-                    fotoUrls.push(urlData.publicUrl);
-                }
-            }
+        const payload = {
+            nama_customer: document.getElementById('custName').value,
+            kegiatan: document.getElementById('activityName').value,
+            alamat: document.getElementById('custAddress').value,
+            tanggal: document.getElementById('installDate').value,
+            teknisi: document.getElementById('techName').value
+        };
 
-            // Simpan ke Database
-            const { error: dbErr } = await supabase.from('laporan_instalasi').insert([{
-                nama_customer: document.getElementById('custName').value,
-                kegiatan: document.getElementById('activityName').value,
-                alamat: document.getElementById('custAddress').value,
-                tanggal: document.getElementById('installDate').value,
-                teknisi: document.getElementById('techName').value,
-                foto_urls: fotoUrls
-            }]);
-            
-            if (dbErr) throw dbErr;
-            alert("Berhasil disimpan ke Cloud!");
+        const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
+        
+        if (error) {
+            alert("Gagal Simpan: " + error.message);
+        } else {
+            alert("Berhasil!");
             generatePDF();
-        } catch (err) {
-            alert("Error: " + err.message);
         }
     }
 
