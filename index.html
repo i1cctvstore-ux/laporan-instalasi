@@ -34,7 +34,6 @@
 <div class="grid-container">
   <div>
     <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;">
-      <!-- Input dipisah menjadi dua -->
       <div class="field"><label>Nama Customer</label><input type="text" id="custName"></div>
       <div class="field"><label>Nama Kegiatan</label><input type="text" id="activityName"></div>
       <div class="field"><label>Alamat</label><input type="text" id="custAddress"></div>
@@ -63,6 +62,11 @@
 
   function triggerUpload() {
     if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
+    document.getElementById('fileInput').click();
+  }
+
+  function tambahFotoKeGrup(subtitle) {
+    document.getElementById('currentSubtitleInput').value = subtitle;
     document.getElementById('fileInput').click();
   }
 
@@ -95,22 +99,32 @@
     structuredGroups.forEach((group, gIdx) => {
       const box = document.createElement('div');
       box.className = 'photo-group-box';
-      box.innerHTML = `<strong>${group.subtitle}</strong>`;
+      box.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong>${group.subtitle}</strong>
+            <span onclick="tambahFotoKeGrup('${group.subtitle}')" style="cursor:pointer; font-size:10px; background:#e4e8f1; padding:2px 8px; border-radius:4px; font-weight:bold;">+ TAMBAH FOTO</span>
+        </div>`;
       const grid = document.createElement('div');
       grid.style.display = 'grid'; grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(70px, 1fr))'; grid.style.gap = '5px';
       group.images.forEach((img, iIdx) => {
-        grid.innerHTML += `<div style="position:relative"><img src="${img.base64}" style="width:100%; height:60px; object-fit:cover; border-radius:4px;"></div>`;
+        grid.innerHTML += `<div style="position:relative"><img src="${img.base64}" style="width:100%; height:60px; object-fit:cover; border-radius:4px;">
+        <span onclick="removeImage(${gIdx}, ${iIdx})" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; cursor:pointer;">×</span></div>`;
       });
       box.appendChild(grid);
       container.appendChild(box);
     });
   }
 
+  function removeImage(gIdx, iIdx) {
+    structuredGroups[gIdx].images.splice(iIdx, 1);
+    if (!structuredGroups[gIdx].images.length) structuredGroups.splice(gIdx, 1);
+    renderPreviews();
+  }
+
   async function simpanKeSupabase() {
-    // Pastikan nama kolom di bawah sesuai dengan nama kolom di Database Supabase Anda
     const { error } = await supabaseClient.from('laporan_instalasi').insert([{
-      nama_customer: document.getElementById('custName').value, // Kolom 1
-      kegiatan: document.getElementById('activityName').value,  // Kolom 2
+      nama_customer: document.getElementById('custName').value,
+      kegiatan: document.getElementById('activityName').value,
       alamat: document.getElementById('custAddress').value,
       tanggal: document.getElementById('installDate').value,
       teknisi: document.getElementById('techName').value
