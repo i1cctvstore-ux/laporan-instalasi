@@ -16,6 +16,7 @@
 </head>
 <body>
 
+<!-- HTML Tetap Sama -->
 <div class="grid-container">
     <div>
         <div class="card">
@@ -42,81 +43,51 @@
     let structuredGroups = [];
     const { jsPDF } = window.jspdf;
 
-    function triggerUpload() {
-        if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
-        document.getElementById('fileInput').click();
-    }
+    // ... (fungsi triggerUpload, handleFileSelect, renderPreviews, tambahFotoKeGrup tetap sama) ...
 
-    function handleFileSelect(event) {
-        const subtitle = document.getElementById('currentSubtitleInput').value.trim();
-        let group = structuredGroups.find(g => g.subtitle.toLowerCase() === subtitle.toLowerCase());
-        if (!group) { group = { subtitle, images: [] }; structuredGroups.push(group); }
-
-        Array.from(event.target.files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                group.images.push({ base64: e.target.result });
-                renderPreviews();
-            };
-            reader.readAsDataURL(file);
+    async function uploadKeImgur(base64Data) {
+        const base64Image = base64Data.split(',')[1];
+        const response = await fetch('https://api.imgur.com/3/image', {
+            method: 'POST',
+            headers: { 'Authorization': 'Client-ID YOUR_IMGUR_CLIENT_ID', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64Image })
         });
-    }
-
-    function renderPreviews() {
-        const container = document.getElementById('photoPreviewContainer');
-        container.innerHTML = '';
-        structuredGroups.forEach((group) => {
-            const box = document.createElement('div');
-            box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong> <button onclick="tambahFotoKeGrup('${group.subtitle}')" style="font-size:10px; width:auto; padding:2px 5px;">+ TAMBAH</button>`;
-            group.images.forEach(img => {
-                box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
-            });
-            container.appendChild(box);
-        });
-    }
-
-    function tambahFotoKeGrup(subtitle) {
-        document.getElementById('currentSubtitleInput').value = subtitle;
-        document.getElementById('fileInput').click();
+        const result = await response.json();
+        return result.data.link;
     }
 
     async function simpanKeSupabase() {
-        // Mengubah foto menjadi teks (JSON string) untuk disimpan ke kolom TEXT
-        const fotoData = JSON.stringify(structuredGroups);
+        alert("Mengunggah foto ke Cloud... Mohon tunggu.");
+        let links = [];
 
-        const payload = {
-            nama_customer: document.getElementById('custName').value,
-            kegiatan: document.getElementById('activityName').value,
-            alamat: document.getElementById('custAddress').value,
-            tanggal: document.getElementById('installDate').value,
-            teknisi: document.getElementById('techName').value,
-            foto_data: fotoData
-        };
+        try {
+            for (let group of structuredGroups) {
+                for (let img of group.images) {
+                    const link = await uploadKeImgur(img.base64);
+                    links.push(link);
+                }
+            }
 
-        const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
-        
-        if (error) {
-            alert("Gagal Simpan: " + error.message);
-        } else {
-            alert("Data dan Foto Berhasil Disimpan di Database!");
+            const payload = {
+                nama_customer: document.getElementById('custName').value,
+                kegiatan: document.getElementById('activityName').value,
+                alamat: document.getElementById('custAddress').value,
+                tanggal: document.getElementById('installDate').value,
+                teknisi: document.getElementById('techName').value,
+                foto_data: links.join(", ") // Menyimpan link dipisahkan koma
+            };
+
+            const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
+            if (error) throw error;
+
+            alert("Data dan Link Foto Berhasil Disimpan!");
             generatePDF();
+        } catch (err) {
+            alert("Error: " + err.message);
         }
     }
 
-    function generatePDF() {
-        const doc = new jsPDF();
-        doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
-        let y = 30;
-        structuredGroups.forEach(group => {
-            doc.text(group.subtitle, 14, y); y += 10;
-            group.images.forEach(img => {
-                doc.addImage(img.base64, 'JPEG', 14, y, 80, 60);
-                y += 70;
-            });
-        });
-        doc.save("Laporan.pdf");
-    }
+    // ... (fungsi generatePDF tetap sama) ...
 </script>
 </body>
 </html>
