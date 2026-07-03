@@ -6,11 +6,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        :root { --navy-950:#0a1326; --line:#e4e8f1; --card:#ffffff; }
         body { font-family: sans-serif; background: #f3f5f9; padding: 20px; }
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; }
         .field { margin-bottom: 12px; }
-        .field label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; }
+        .field label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
         input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .btn-upload { background: #e4e8f1; color: #0a1326; }
@@ -42,13 +43,17 @@
 </div>
 
 <script>
-    // Inisialisasi Supabase (Cukup sekali saja)
     const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
     let structuredGroups = [];
     const { jsPDF } = window.jspdf;
 
     function triggerUpload() {
         if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
+        document.getElementById('fileInput').click();
+    }
+
+    function tambahFotoKeGrup(subtitle) {
+        document.getElementById('currentSubtitleInput').value = subtitle;
         document.getElementById('fileInput').click();
     }
 
@@ -73,7 +78,13 @@
         structuredGroups.forEach((group, gIdx) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong> (${group.images.length} foto)`;
+            box.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong>${group.subtitle}</strong>
+                <span onclick="tambahFotoKeGrup('${group.subtitle}')" style="cursor:pointer; background:#e4e8f1; padding:2px 6px; border-radius:4px; font-size:10px;">+ TAMBAH</span>
+            </div>`;
+            group.images.forEach((img, iIdx) => {
+                box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin-right:5px; border-radius:4px;">`;
+            });
             container.appendChild(box);
         });
     }
@@ -88,30 +99,26 @@
         };
 
         const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
-        
         if (error) {
             alert("Gagal Simpan: " + error.message);
         } else {
-            alert("Data Berhasil Disimpan!");
+            alert("Berhasil!");
             generatePDF();
         }
     }
 
     function generatePDF() {
-        if (structuredGroups.length === 0) return alert("Belum ada foto untuk PDF!");
         const doc = new jsPDF();
         doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
-        
         let y = 30;
         structuredGroups.forEach(group => {
             doc.text(group.subtitle, 14, y); y += 10;
             group.images.forEach((img, i) => {
                 doc.addImage(img.base64, 'JPEG', 14, y, 80, 60);
                 y += 70;
-                if (y > 250) { doc.addPage(); y = 20; }
             });
         });
-        doc.save("Laporan_Instalasi.pdf");
+        doc.save("Laporan.pdf");
     }
 </script>
 </body>
