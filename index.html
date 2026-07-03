@@ -5,39 +5,77 @@
     <title>Foto → PDF Laporan Instalasi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; background: #f3f5f9; padding: 20px; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-upload { background: #e4e8f1; color: #0a1326; }
+        .btn-save { background: #0a1326; color: white; }
+        .photo-group-box { background: white; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+    </style>
 </head>
 <body>
 
-<!-- KODE HTML ANDA TETAP SAMA -->
 <div class="grid-container">
     <div>
-        <input type="text" id="custName" placeholder="Nama Customer">
-        <input type="text" id="activityName" placeholder="Nama Kegiatan">
-        <input type="text" id="custAddress" placeholder="Alamat">
-        <input type="date" id="installDate">
-        <input type="text" id="techName" placeholder="Teknisi">
-        <input type="text" id="currentSubtitleInput" placeholder="Subjudul Foto">
-        <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
-        <button onclick="triggerUpload()">📸 Pilih & Tambah Gambar</button>
+        <div class="card">
+            <div class="field"><label>Nama Customer</label><input type="text" id="custName"></div>
+            <div class="field"><label>Nama Kegiatan</label><input type="text" id="activityName"></div>
+            <div class="field"><label>Alamat</label><input type="text" id="custAddress"></div>
+            <div class="field"><label>Tanggal</label><input type="date" id="installDate"></div>
+            <div class="field"><label>Teknisi</label><input type="text" id="techName"></div>
+        </div>
+        <div class="card">
+            <div class="field"><label>Subjudul Kelompok Foto</label><input type="text" id="currentSubtitleInput"></div>
+            <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+            <button class="btn-upload" onclick="triggerUpload()">📸 Pilih & Tambah Gambar</button>
+        </div>
     </div>
     <div>
-        <div id="photoPreviewContainer"></div>
-        <button onclick="simpanKeSupabase()">💾 Simpan & Download PDF</button>
+        <div id="photoPreviewContainer" class="card" style="min-height: 300px;"></div>
+        <button class="btn-save" onclick="simpanKeSupabase()">💾 Simpan & Download PDF</button>
     </div>
 </div>
 
 <script>
-    // 1. Inisialisasi Supabase dengan nama variabel yang unik
+    // Inisialisasi Supabase (Cukup sekali saja)
     const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
-    
     let structuredGroups = [];
     const { jsPDF } = window.jspdf;
 
-    // 2. Definisi Fungsi
     function triggerUpload() {
-        const sub = document.getElementById('currentSubtitleInput').value.trim();
-        if (!sub) return alert("Isi subjudul dulu!");
+        if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
         document.getElementById('fileInput').click();
+    }
+
+    function handleFileSelect(event) {
+        const subtitle = document.getElementById('currentSubtitleInput').value.trim();
+        let group = structuredGroups.find(g => g.subtitle.toLowerCase() === subtitle.toLowerCase());
+        if (!group) { group = { subtitle, images: [] }; structuredGroups.push(group); }
+
+        Array.from(event.target.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                group.images.push({ base64: e.target.result });
+                renderPreviews();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderPreviews() {
+        const container = document.getElementById('photoPreviewContainer');
+        container.innerHTML = '';
+        structuredGroups.forEach((group, gIdx) => {
+            const box = document.createElement('div');
+            box.className = 'photo-group-box';
+            box.innerHTML = `<strong>${group.subtitle}</strong> (${group.images.length} foto)`;
+            container.appendChild(box);
+        });
     }
 
     async function simpanKeSupabase() {
@@ -52,16 +90,29 @@
         const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
         
         if (error) {
-            alert("Gagal: " + error.message);
+            alert("Gagal Simpan: " + error.message);
         } else {
-            alert("Berhasil!");
-            // generatePDF(); 
+            alert("Data Berhasil Disimpan!");
+            generatePDF();
         }
     }
 
-    // Pastikan fungsi lain diletakkan di sini...
-    function handleFileSelect(event) { /* ... */ }
-    function renderPreviews() { /* ... */ }
+    function generatePDF() {
+        if (structuredGroups.length === 0) return alert("Belum ada foto untuk PDF!");
+        const doc = new jsPDF();
+        doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
+        
+        let y = 30;
+        structuredGroups.forEach(group => {
+            doc.text(group.subtitle, 14, y); y += 10;
+            group.images.forEach((img, i) => {
+                doc.addImage(img.base64, 'JPEG', 14, y, 80, 60);
+                y += 70;
+                if (y > 250) { doc.addPage(); y = 20; }
+            });
+        });
+        doc.save("Laporan_Instalasi.pdf");
+    }
 </script>
 </body>
 </html>
