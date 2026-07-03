@@ -68,7 +68,8 @@
         structuredGroups.forEach((group) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong>`;
+            // FUNGSI TAMBAH FOTO DI SINI:
+            box.innerHTML = `<strong>${group.subtitle}</strong> <button onclick="tambahFotoKeGrup('${group.subtitle}')" style="font-size:10px; width:auto; padding:2px 5px; margin-left:10px;">+ TAMBAH</button>`;
             group.images.forEach(img => {
                 box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
             });
@@ -76,12 +77,16 @@
         });
     }
 
+    function tambahFotoKeGrup(subtitle) {
+        document.getElementById('currentSubtitleInput').value = subtitle;
+        document.getElementById('fileInput').click();
+    }
+
     async function simpanKeSupabase() {
         alert("Sedang mengupload foto ke Cloud, mohon tunggu...");
         let fotoLinks = [];
 
         try {
-            // 1. Upload ke Storage dengan nama bucket yang sesuai di dashboard (laporan_foto)
             for (let group of structuredGroups) {
                 for (let img of group.images) {
                     const fileName = `foto_${Date.now()}_${Math.random()}.jpg`;
@@ -98,7 +103,6 @@
                 }
             }
 
-            // 2. Simpan hanya Link ke Tabel
             const payload = {
                 nama_customer: document.getElementById('custName').value,
                 kegiatan: document.getElementById('activityName').value,
