@@ -2,20 +2,15 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Foto → PDF Laporan Instalasi</title>
+    <title>Sistem Laporan Instalasi</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --navy-950:#0a1326; --line:#e4e8f1; --card:#ffffff; }
         body { font-family: sans-serif; background: #f3f5f9; padding: 20px; }
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; }
-        .field { margin-bottom: 12px; }
-        .field label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
-        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn-upload { background: #e4e8f1; color: #0a1326; }
-        .btn-save { background: #0a1326; color: white; }
+        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .photo-group-box { background: white; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
     </style>
 </head>
@@ -24,36 +19,31 @@
 <div class="grid-container">
     <div>
         <div class="card">
-            <div class="field"><label>Nama Customer</label><input type="text" id="custName"></div>
-            <div class="field"><label>Nama Kegiatan</label><input type="text" id="activityName"></div>
-            <div class="field"><label>Alamat</label><input type="text" id="custAddress"></div>
-            <div class="field"><label>Tanggal</label><input type="date" id="installDate"></div>
-            <div class="field"><label>Teknisi</label><input type="text" id="techName"></div>
+            <input type="text" id="custName" placeholder="Nama Customer">
+            <input type="text" id="activityName" placeholder="Nama Kegiatan">
+            <input type="text" id="custAddress" placeholder="Alamat">
+            <input type="date" id="installDate">
+            <input type="text" id="techName" placeholder="Teknisi">
         </div>
         <div class="card">
-            <div class="field"><label>Subjudul Kelompok Foto</label><input type="text" id="currentSubtitleInput"></div>
+            <input type="text" id="currentSubtitleInput" placeholder="Subjudul Kelompok Foto">
             <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
-            <button class="btn-upload" onclick="triggerUpload()">📸 Pilih & Tambah Gambar</button>
+            <button style="background: #e4e8f1;" onclick="triggerUpload()">📸 Pilih & Tambah Gambar</button>
         </div>
     </div>
     <div>
         <div id="photoPreviewContainer" class="card" style="min-height: 300px;"></div>
-        <button class="btn-save" onclick="simpanKeSupabase()">💾 Simpan & Download PDF</button>
+        <button style="background: #0a1326; color: white;" onclick="simpanKeSupabase()">💾 Simpan & Download PDF</button>
     </div>
 </div>
 
 <script>
-    const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
+    const supabase = supabase.createClient('URL_SUPABASE_ANDA', 'KEY_SUPABASE_ANDA');
     let structuredGroups = [];
     const { jsPDF } = window.jspdf;
 
     function triggerUpload() {
         if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
-        document.getElementById('fileInput').click();
-    }
-
-    function tambahFotoKeGrup(subtitle) {
-        document.getElementById('currentSubtitleInput').value = subtitle;
         document.getElementById('fileInput').click();
     }
 
@@ -78,32 +68,49 @@
         structuredGroups.forEach((group, gIdx) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            box.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong>${group.subtitle}</strong>
-                <span onclick="tambahFotoKeGrup('${group.subtitle}')" style="cursor:pointer; background:#e4e8f1; padding:2px 6px; border-radius:4px; font-size:10px;">+ TAMBAH</span>
-            </div>`;
-            group.images.forEach((img, iIdx) => {
-                box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin-right:5px; border-radius:4px;">`;
+            box.innerHTML = `<strong>${group.subtitle}</strong> <button onclick="tambahFotoKeGrup('${group.subtitle}')" style="font-size:10px; width:auto;">+ TAMBAH</button>`;
+            group.images.forEach(img => {
+                box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
             });
             container.appendChild(box);
         });
     }
 
-    async function simpanKeSupabase() {
-        const payload = {
-            nama_customer: document.getElementById('custName').value,
-            kegiatan: document.getElementById('activityName').value,
-            alamat: document.getElementById('custAddress').value,
-            tanggal: document.getElementById('installDate').value,
-            teknisi: document.getElementById('techName').value
-        };
+    function tambahFotoKeGrup(subtitle) {
+        document.getElementById('currentSubtitleInput').value = subtitle;
+        document.getElementById('fileInput').click();
+    }
 
-        const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
-        if (error) {
-            alert("Gagal Simpan: " + error.message);
-        } else {
-            alert("Berhasil!");
+    async function simpanKeSupabase() {
+        try {
+            let fotoUrls = [];
+            // Upload foto ke Storage
+            for (let group of structuredGroups) {
+                for (let imgObj of group.images) {
+                    const fileName = `foto_${Date.now()}_${Math.random()}.jpg`;
+                    const blob = await (await fetch(imgObj.base64)).blob();
+                    const { error: upErr } = await supabase.storage.from('laporan-foto').upload(fileName, blob);
+                    if (upErr) throw upErr;
+                    const { data: urlData } = supabase.storage.from('laporan-foto').getPublicUrl(fileName);
+                    fotoUrls.push(urlData.publicUrl);
+                }
+            }
+
+            // Simpan ke Database
+            const { error: dbErr } = await supabase.from('laporan_instalasi').insert([{
+                nama_customer: document.getElementById('custName').value,
+                kegiatan: document.getElementById('activityName').value,
+                alamat: document.getElementById('custAddress').value,
+                tanggal: document.getElementById('installDate').value,
+                teknisi: document.getElementById('techName').value,
+                foto_urls: fotoUrls
+            }]);
+            
+            if (dbErr) throw dbErr;
+            alert("Berhasil disimpan ke Cloud!");
             generatePDF();
+        } catch (err) {
+            alert("Error: " + err.message);
         }
     }
 
@@ -113,7 +120,7 @@
         let y = 30;
         structuredGroups.forEach(group => {
             doc.text(group.subtitle, 14, y); y += 10;
-            group.images.forEach((img, i) => {
+            group.images.forEach(img => {
                 doc.addImage(img.base64, 'JPEG', 14, y, 80, 60);
                 y += 70;
             });
