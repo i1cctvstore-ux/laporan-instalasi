@@ -82,37 +82,25 @@
     }
 
     async function simpanKeSupabase() {
-        try {
-            let fotoUrls = [];
-            // Upload foto ke Storage
-            for (let group of structuredGroups) {
-                for (let imgObj of group.images) {
-                    const fileName = `foto_${Date.now()}_${Math.random()}.jpg`;
-                    const blob = await (await fetch(imgObj.base64)).blob();
-                    const { error: upErr } = await supabaseClient.storage.from('laporan-foto').upload(fileName, blob);
-                    if (upErr) throw upErr;
-                    const { data: urlData } = supabaseClient.storage.from('laporan-foto').getPublicUrl(fileName);
-                    fotoUrls.push(urlData.publicUrl);
-                }
-            }
+        // Mengubah foto menjadi teks (JSON string) untuk disimpan ke kolom TEXT
+        const fotoData = JSON.stringify(structuredGroups);
 
-            // Simpan ke Database
-            const payload = {
-                nama_customer: document.getElementById('custName').value,
-                kegiatan: document.getElementById('activityName').value,
-                alamat: document.getElementById('custAddress').value,
-                tanggal: document.getElementById('installDate').value,
-                teknisi: document.getElementById('techName').value,
-                foto_urls: fotoUrls
-            };
+        const payload = {
+            nama_customer: document.getElementById('custName').value,
+            kegiatan: document.getElementById('activityName').value,
+            alamat: document.getElementById('custAddress').value,
+            tanggal: document.getElementById('installDate').value,
+            teknisi: document.getElementById('techName').value,
+            foto_data: fotoData
+        };
 
-            const { error: dbErr } = await supabaseClient.from('laporan_instalasi').insert([payload]);
-            if (dbErr) throw dbErr;
-
-            alert("Berhasil disimpan ke Cloud!");
+        const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
+        
+        if (error) {
+            alert("Gagal Simpan: " + error.message);
+        } else {
+            alert("Data dan Foto Berhasil Disimpan di Database!");
             generatePDF();
-        } catch (err) {
-            alert("Error: " + err.message);
         }
     }
 
