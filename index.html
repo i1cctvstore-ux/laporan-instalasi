@@ -4,117 +4,77 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Foto → PDF Laporan Instalasi</title>
-<!-- Memuat library jsPDF dan Supabase terbaru dengan aman -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --navy-950:#0a1326; --navy-800:#142544; --navy-700:#1c3157;
     --blue-500:#2f6fed; --paper:#f3f5f9; --card:#ffffff;
-    --line:#e4e8f1; --line-soft:#edf0f6; --muted:#6e7790;
-    --muted-2:#9aa2b8; --radius-lg:16px; --radius-sm:8px;
-    --font:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --line:#e4e8f1; --muted:#6e7790; --muted-2:#9aa2b8; --radius-lg:16px;
   }
   *{box-sizing:border-box;}
-  body{ font-family:var(--font); background:var(--paper); color:#101a30; margin:0; padding:20px; font-size:14px; }
-  button{font-family:inherit;cursor:pointer;}
-  .topbar{ background:var(--card); border-bottom:1px solid var(--line); padding:16px 28px; margin-bottom:20px; border-radius:var(--radius-sm); }
-  .topbar h1{ font-size:18px; margin:0; letter-spacing:-.2px; }
-  .topbar .crumbs{ font-size:12px; color:var(--muted); margin-top:2px; }
+  body{ font-family:'Montserrat',sans-serif; background:var(--paper); color:#101a30; margin:0; padding:20px; font-size:14px; }
+  .topbar{ background:var(--card); border-bottom:1px solid var(--line); padding:16px 28px; margin-bottom:20px; border-radius:8px; }
   .grid-container { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   .field { margin-bottom: 12px; }
-  .field label{ display:block; font-size:11.5px; font-weight:700; color:var(--navy-700); margin-bottom:6px; text-transform:uppercase; }
-  .field input{ width:100%; padding:10px 12px; border:1.4px solid var(--line); border-radius:var(--radius-sm); font-size:13.5px; outline:none; background:#fafbfd; }
-  .field input:focus{ border-color:var(--blue-500); background:#fff; }
-  .btn{ border:none; border-radius:var(--radius-sm); padding:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
-  .btn-primary{ background:var(--navy-950); color:#fff; width:100%; font-size:14px; }
-  .btn-primary:hover{ background:var(--navy-800); }
+  .field label{ display:block; font-size:11px; font-weight:700; color:var(--navy-700); margin-bottom:6px; text-transform:uppercase; }
+  .field input{ width:100%; padding:10px 12px; border:1.4px solid var(--line); border-radius:8px; }
+  .btn{ border:none; border-radius:8px; padding:12px; font-weight:600; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .btn-primary{ background:var(--navy-950); color:#fff; }
   .photo-group-box { background: var(--card); border-radius: 9px; padding: 12px; margin-bottom: 12px; border: 1px solid var(--line); }
-  .subtitle-badge { display: inline-block; background: #dde3f0; color: var(--navy-950); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; margin-top: 5px; }
-  @media (max-width: 768px) { .grid-container { grid-template-columns: 1fr; } body { padding: 10px; } }
+  @media (max-width: 768px) { .grid-container { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <h1>Foto → PDF Laporan Instalasi</h1>
-  <div class="crumbs">Gabungkan foto hasil instalasi menjadi PDF terstruktur & simpan ke Supabase</div>
 </div>
 
 <div class="grid-container">
-  <!-- SISI KIRI: FORM INPUT DATA & UPLOAD -->
   <div>
-    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">1. Info Lengkap Laporan</div>
     <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;">
-      <div class="field"><label>Kegiatan / Nama Customer</label><input type="text" id="pdfTitle" placeholder="mis. Laporan Instalasi - Toko Budi Jaya"></div>
-      <div class="field"><label>Lokasi / Alamat</label><input type="text" id="custAddress" placeholder="mis. Jl. Mawar No.12"></div>
-      <div class="field"><label>Tanggal Instalasi</label><input type="date" id="installDate"></div>
-      <div class="field"><label>Teknisi</label><input type="text" id="techName" placeholder="mis. Budi Santoso"></div>
+      <div class="field"><label>Customer</label><input type="text" id="pdfTitle"></div>
+      <div class="field"><label>Alamat</label><input type="text" id="custAddress"></div>
+      <div class="field"><label>Tanggal</label><input type="date" id="installDate"></div>
+      <div class="field"><label>Teknisi</label><input type="text" id="techName"></div>
     </div>
-
-    <div style="margin-top:20px; font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">2. Alur Tambah Foto per Subjudul</div>
-    <div style="background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;">
-      <div class="field">
-        <label>Tulis Subjudul Kelompok Foto Ini</label>
-        <input type="text" id="currentSubtitleInput" placeholder="mis. Sebelum / Sesudah / Tambahan">
-      </div>
-      
-      <!-- Input File Tersembunyi -->
+    <div style="margin-top:20px; background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;">
+      <div class="field"><label>Subjudul Kelompok Foto</label><input type="text" id="currentSubtitleInput"></div>
       <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
-      
-      <button class="btn" style="background:#e4e8f1; color:var(--navy-950); width:100%; margin-top:5px;" onclick="triggerUpload()">
-        📸 Pilih & Tambah Gambar
-      </button>
+      <button class="btn" style="background:#e4e8f1; color:var(--navy-950);" onclick="triggerUpload()">📸 Pilih & Tambah Gambar</button>
     </div>
   </div>
 
-  <!-- SISI KANAN: PREVIEW TABEL FOTO & TOMBOL AKSI -->
   <div>
-    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">3. Preview Tabel Foto</div>
-    <div id="photoPreviewContainer" style="background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px;min-height:280px; display:flex; flex-direction:column; gap:10px;">
-      <div id="emptyState" style="text-align:center; padding:60px 0; color:var(--muted-2);">Belum ada data foto yang diisi.</div>
+    <div id="photoPreviewContainer" style="background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px;min-height:300px;">
+      <div id="emptyState" style="text-align:center; padding:60px 0; color:var(--muted-2);">Belum ada data foto.</div>
     </div>
-    
-    <button class="btn btn-primary" style="margin-top:15px;" onclick="simpanKeSupabase()">
-      💾 Simpan ke Database & Download PDF
-    </button>
+    <button class="btn btn-primary" style="margin-top:15px;" onclick="simpanKeSupabase()">💾 Simpan & Download PDF</button>
   </div>
 </div>
 
 <script>
-  // ==========================================
-  // KONFIGURASI SUPABASE (PASTIKAN KUNCI DI BAWAH SUDAH BENAR)
-  // ==========================================
-  const SUPABASE_URL = 'https://thcnsestuujsfarqaxso.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY';
-  
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { jsPDF } = window.jspdf;
+  const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
   let structuredGroups = [];
+  const { jsPDF } = window.jspdf;
 
-  // Trigger klik pada file input bawaan HTML
   function triggerUpload() {
-    const subtitle = document.getElementById('currentSubtitleInput').value.trim();
-    if (!subtitle) {
-      alert("⚠️ Mohon isi 'Subjudul Kelompok Foto' terlebih dahulu! (Contoh: Sebelum)");
-      return;
-    }
+    if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
     document.getElementById('fileInput').click();
   }
 
-  // Menangani pemrosesan file gambar yang dipilih
+  // Fungsi tambahan untuk tombol "+ Tambah" di setiap grup
+  function tambahFotoKeGrup(subtitle) {
+    document.getElementById('currentSubtitleInput').value = subtitle;
+    document.getElementById('fileInput').click();
+  }
+
   function handleFileSelect(event) {
     const files = event.target.files;
     const subtitle = document.getElementById('currentSubtitleInput').value.trim();
-    
-    if (files.length === 0) return;
-
-    // Cari kelompok subjudul yang sama atau buat baru jika belum ada
     let group = structuredGroups.find(g => g.subtitle.toLowerCase() === subtitle.toLowerCase());
-    if (!group) { 
-      group = { subtitle: subtitle, images: [] }; 
-      structuredGroups.push(group); 
-    }
+    if (!group) { group = { subtitle, images: [] }; structuredGroups.push(group); }
 
     Array.from(files).forEach(file => {
       const reader = new FileReader();
@@ -122,168 +82,71 @@
         const img = new Image();
         img.src = e.target.result;
         img.onload = () => {
-          // Kompresi gambar via Canvas agar memori stabil dan PDF tidak corrupt
           const canvas = document.createElement('canvas');
-          const maxDim = 1000; 
-          let width = img.width;
-          let height = img.height;
-          
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height *= maxDim / width;
-              width = maxDim;
-            } else {
-              width *= maxDim / height;
-              height = maxDim;
-            }
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          
-          // Simpan dalam format base64 berkualitas medium (0.7)
-          group.images.push({ 
-            name: file.name, 
-            base64: canvas.toDataURL('image/jpeg', 0.7) 
-          });
-          
+          canvas.width = 800; canvas.height = (img.height * 800) / img.width;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          group.images.push({ base64: canvas.toDataURL('image/jpeg', 0.7) });
           renderPreviews();
         };
       };
       reader.readAsDataURL(file);
     });
-    
-    // Reset nilai input file agar file yang sama bisa di-upload ulang jika dibutuhkan
-    event.target.value = "";
   }
 
-  // Merender tampilan tabel preview dalam bentuk grid gambar
   function renderPreviews() {
     const container = document.getElementById('photoPreviewContainer');
     container.innerHTML = '';
-    
-    if (structuredGroups.length === 0) {
-      container.innerHTML = '<div id="emptyState" style="text-align:center; padding:60px 0; color:var(--muted-2);">Belum ada data foto yang diisi.</div>';
-      return;
-    }
-
     structuredGroups.forEach((group, gIdx) => {
       const box = document.createElement('div');
       box.className = 'photo-group-box';
-      box.innerHTML = `<strong style="display:block; margin-bottom:8px; color:var(--navy-950);">${group.subtitle}</strong>`;
-      
+      box.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <strong>${group.subtitle}</strong>
+            <span onclick="tambahFotoKeGrup('${group.subtitle}')" style="cursor:pointer; font-size:10px; background:#e4e8f1; padding:2px 6px; border-radius:4px;">+ Tambah</span>
+        </div>`;
       const grid = document.createElement('div');
-      grid.style.display = 'grid'; 
-      grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(75px, 1fr))'; 
-      grid.style.gap = '8px'; 
-      grid.style.marginTop = '6px';
-      
+      grid.style.display = 'grid'; grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(70px, 1fr))'; grid.style.gap = '5px';
       group.images.forEach((img, iIdx) => {
-        const wrapper = document.createElement('div');
-        wrapper.style.position = 'relative';
-        wrapper.innerHTML = `
-          <img src="${img.base64}" style="width:100%; height:75px; object-fit:cover; border-radius:6px; border:1px solid var(--line);">
-          <span onclick="removeImage(${gIdx}, ${iIdx})" style="position:absolute; top:-6px; right:-6px; background:#ff4d4f; color:white; border-radius:50%; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);">×</span>
-        `;
-        grid.appendChild(wrapper);
+        grid.innerHTML += `<div style="position:relative"><img src="${img.base64}" style="width:100%; height:60px; object-fit:cover; border-radius:4px;">
+        <span onclick="removeImage(${gIdx}, ${iIdx})" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; width:15px; height:15px; font-size:10px; text-align:center; cursor:pointer;">×</span></div>`;
       });
       box.appendChild(grid);
       container.appendChild(box);
     });
   }
 
-  // Menghapus gambar tertentu dari list preview
   function removeImage(gIdx, iIdx) {
     structuredGroups[gIdx].images.splice(iIdx, 1);
-    if (structuredGroups[gIdx].images.length === 0) {
-      structuredGroups.splice(gIdx, 1);
-    }
+    if (!structuredGroups[gIdx].images.length) structuredGroups.splice(gIdx, 1);
     renderPreviews();
   }
 
-  // Fungsi mengunduh (download) PDF
   function generatePDF() {
-    if (structuredGroups.length === 0) return alert("Belum ada foto untuk dibuatkan PDF!");
-    
     const doc = new jsPDF();
-    const title = document.getElementById('pdfTitle').value || "Laporan Instalasi";
-    const alamat = document.getElementById('custAddress').value || "-";
-    const tanggal = document.getElementById('installDate').value || "-";
-    const teknisi = document.getElementById('techName').value || "-";
-
-    // Header Metadata PDF
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(title, 14, 20);
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Alamat  : ${alamat}`, 14, 27);
-    doc.text(`Tanggal : ${tanggal}`, 14, 33);
-    doc.text(`Teknisi : ${teknisi}`, 14, 39);
-    
-    doc.line(14, 43, 196, 43); // Garis pembatas cetak
-    
-    let y = 52;
-    
+    doc.text(document.getElementById('pdfTitle').value || "Laporan", 14, 20);
+    let y = 30;
     structuredGroups.forEach(group => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text(`■ Kelompok: ${group.subtitle}`, 14, y); 
-      y += 8;
-      
+      doc.text(group.subtitle, 14, y); y += 10;
       group.images.forEach((img, i) => {
-        if (y + 60 > 285) { doc.addPage(); y = 20; }
-        
-        // Atur posisi cetak berjejer 2 kolom (Kiri dan Kanan)
-        const x = (i % 2 === 0) ? 14 : 108;
-        
-        doc.addImage(img.base64, 'JPEG', x, y, 88, 60);
-        doc.rect(x, y, 88, 60); // Bingkai foto hitam tipis
-        
-        if (i % 2 !== 0 || i === group.images.length - 1) {
-          y += 68; // Beri ruang vertikal jika baris sudah penuh
-        }
+        if (y > 250) { doc.addPage(); y = 20; }
+        const x = (i % 2 === 0) ? 14 : 110;
+        doc.addImage(img.base64, 'JPEG', x, y, 85, 60);
+        if (i % 2 !== 0) y += 70;
       });
-      y += 10; // Spasi antar kelompok subjudul
+      y += 80;
     });
-    
-    doc.save(`${title}.pdf`);
+    doc.save("Laporan.pdf");
   }
 
-  // Menyimpan data teks ke database Supabase terlebih dahulu
   async function simpanKeSupabase() {
-    const title = document.getElementById('pdfTitle').value.trim();
-    if (!title) {
-      alert("⚠️ Nama Kegiatan / Customer wajib diisi!");
-      return;
-    }
-
-    try {
-      // Eksekusi insert baris data ke database
-      const { data, error } = await supabaseClient.from('laporan_instalasi').insert([{
-        tanggal: document.getElementById('installDate').value || null,
-        name_kegiatan: title,
-        alamat: document.getElementById('custAddress').value || '',
-        teknisi: document.getElementById('techName').value || ''
-      }]).select();
-
-      if (error) {
-        console.error("Gagal menyimpan ke Supabase:", error);
-        alert("❌ Gagal menyimpan data ke Database!\nDetail: " + error.message);
-      } else {
-        alert("✅ Data berhasil masuk ke Database Supabase!");
-        
-        // PENTING: Menjalankan download PDF setelah database berhasil terisi
-        generatePDF();
-      }
-    } catch (err) {
-      console.error("Sistem crash:", err);
-      alert("🚨 Terjadi gangguan sistem internal: " + err.message);
-    }
+    const { error } = await supabaseClient.from('laporan_instalasi').insert([{
+      tanggal: document.getElementById('installDate').value,
+      name_kegiatan: document.getElementById('pdfTitle').value,
+      alamat: document.getElementById('custAddress').value,
+      teknisi: document.getElementById('techName').value
+    }]);
+    if (error) alert("Gagal: " + error.message);
+    else { alert("Berhasil!"); generatePDF(); }
   }
 </script>
 </body>
