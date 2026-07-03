@@ -68,7 +68,7 @@
         structuredGroups.forEach((group) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong> <button onclick="tambahFotoKeGrup('${group.subtitle}')" style="font-size:10px; width:auto; padding:2px 5px;">+ TAMBAH</button>`;
+            box.innerHTML = `<strong>${group.subtitle}</strong>`;
             group.images.forEach(img => {
                 box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
             });
@@ -76,32 +76,45 @@
         });
     }
 
-    function tambahFotoKeGrup(subtitle) {
-        document.getElementById('currentSubtitleInput').value = subtitle;
-        document.getElementById('fileInput').click();
-    }
-
     async function simpanKeSupabase() {
-        // Mengubah foto menjadi teks (JSON string) untuk disimpan ke kolom TEXT
-        const fotoData = JSON.stringify(structuredGroups);
+        alert("Sedang mengupload foto ke Cloud, mohon tunggu...");
+        let fotoLinks = [];
 
-        const payload = {
-            nama_customer: document.getElementById('custName').value,
-            kegiatan: document.getElementById('activityName').value,
-            alamat: document.getElementById('custAddress').value,
-            tanggal: document.getElementById('installDate').value,
-            teknisi: document.getElementById('techName').value,
-            foto_data: fotoData
-        };
+        try {
+            // 1. Upload ke Storage dengan nama bucket yang sesuai di dashboard (laporan_foto)
+            for (let group of structuredGroups) {
+                for (let img of group.images) {
+                    const fileName = `foto_${Date.now()}_${Math.random()}.jpg`;
+                    const blob = await (await fetch(img.base64)).blob();
+                    
+                    const { error: uploadError } = await supabaseClient.storage
+                        .from('laporan_foto')
+                        .upload(fileName, blob);
+                    
+                    if (uploadError) throw uploadError;
 
-        // Simpan data ke Supabase tanpa melibatkan storage bucket
-        const { error } = await supabaseClient.from('laporan_instalasi').insert([payload]);
-        
-        if (error) {
-            alert("Gagal Simpan: " + error.message);
-        } else {
-            alert("Data dan Foto Berhasil Disimpan!");
+                    const { data } = supabaseClient.storage.from('laporan_foto').getPublicUrl(fileName);
+                    fotoLinks.push(data.publicUrl);
+                }
+            }
+
+            // 2. Simpan hanya Link ke Tabel
+            const payload = {
+                nama_customer: document.getElementById('custName').value,
+                kegiatan: document.getElementById('activityName').value,
+                alamat: document.getElementById('custAddress').value,
+                tanggal: document.getElementById('installDate').value,
+                teknisi: document.getElementById('techName').value,
+                foto_data: fotoLinks.join(" | ") 
+            };
+
+            const { error: dbError } = await supabaseClient.from('laporan_instalasi').insert([payload]);
+            if (dbError) throw dbError;
+
+            alert("Berhasil! Foto tersimpan di Storage, Data tersimpan di Tabel.");
             generatePDF();
+        } catch (err) {
+            alert("Error: " + err.message);
         }
     }
 
