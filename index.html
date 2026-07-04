@@ -33,12 +33,13 @@
     </div>
     <div>
         <div id="photoPreviewContainer" class="card" style="min-height: 300px;"></div>
-        <button style="background: #0a1326; color: white;" onclick="prosesSelesai()">💾 Simpan ke Cloud & Download PDF</button>
+        <button id="saveBtn" style="background: #0a1326; color: white;" onclick="prosesSelesai()">💾 Simpan ke Cloud & Download PDF</button>
     </div>
 </div>
 
 <script>
-    const supabase = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
+    // 1. Inisialisasi Supabase (Ganti dengan kredensial Anda)
+    const supabase = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
     let structuredGroups = [];
 
     function triggerUpload() {
@@ -59,7 +60,7 @@
             };
             reader.readAsDataURL(file);
         });
-        event.target.value = ''; // Reset agar bisa upload file yang sama kembali
+        event.target.value = '';
     }
 
     function renderPreviews() {
@@ -68,7 +69,7 @@
         structuredGroups.forEach((group) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong>`;
+            box.innerHTML = `<strong>${group.subtitle}</strong><br>`;
             group.images.forEach(img => {
                 box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
             });
@@ -78,35 +79,55 @@
 
     async function prosesSelesai() {
         if (structuredGroups.length === 0) return alert("Belum ada foto!");
-        alert("Sedang mengupload ke Storage...");
+        
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        btn.innerText = "Mengupload...";
 
         try {
             for (let group of structuredGroups) {
                 for (let img of group.images) {
-                    const fileName = `${group.subtitle}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-                    await supabase.storage.from('laporan_foto').upload(fileName, img.file);
+                    const fileExt = img.file.name.split('.').pop();
+                    const fileName = `${group.subtitle}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    
+                    const { error } = await supabase.storage
+                        .from('laporan_foto')
+                        .upload(fileName, img.file);
+
+                    if (error) throw error;
                 }
             }
             alert("Berhasil! Foto tersimpan di Storage.");
             generatePDF();
         } catch (err) {
-            alert("Error: " + err.message);
+            console.error(err);
+            alert("Error saat upload: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "💾 Simpan ke Cloud & Download PDF";
         }
     }
 
     function generatePDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
-        let y = 30;
+        doc.setFontSize(18);
+        doc.text("Laporan Instalasi", 14, 20);
+        doc.setFontSize(12);
+        doc.text("Kegiatan: " + document.getElementById('activityName').value, 14, 30);
+        
+        let y = 40;
         structuredGroups.forEach(group => {
-            doc.text(group.subtitle, 14, y); y += 10;
+            doc.setFontSize(14);
+            doc.text(group.subtitle, 14, y); 
+            y += 10;
             group.images.forEach(img => {
+                if (y > 250) { doc.addPage(); y = 20; }
                 doc.addImage(img.base64, 'JPEG', 14, y, 80, 60);
                 y += 70;
             });
         });
-        doc.save("Laporan.pdf");
+        doc.save("Laporan_" + new Date().toLocaleDateString() + ".pdf");
     }
 </script>
 </body>
