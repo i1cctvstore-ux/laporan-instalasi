@@ -9,9 +9,9 @@
         body { font-family: sans-serif; background: #f3f5f9; padding: 20px; }
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;}
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .photo-group-box { background: white; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+        .photo-group-box { background: #f9f9f9; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -33,14 +33,13 @@
     </div>
     <div>
         <div id="photoPreviewContainer" class="card" style="min-height: 300px;"></div>
-        <button style="background: #0a1326; color: white;" onclick="simpanKeSupabase()">💾 Simpan & Download PDF</button>
+        <button style="background: #0a1326; color: white;" onclick="prosesSelesai()">💾 Simpan ke Cloud & Download PDF</button>
     </div>
 </div>
 
 <script>
-    const supabaseClient = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
+    const supabase = supabase.createClient('https://thcnsestuujsfarqaxso.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRoY25zZXN0dXVqc2ZhcnFheHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3NjgyNDEsImV4cCI6MjA5ODM0NDI0MX0.kpjFTpzFuDanzHUjRrqnNuoisL8fcsD1WfjOX3eRwZY');
     let structuredGroups = [];
-    const { jsPDF } = window.jspdf;
 
     function triggerUpload() {
         if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
@@ -49,17 +48,18 @@
 
     function handleFileSelect(event) {
         const subtitle = document.getElementById('currentSubtitleInput').value.trim();
-        let group = structuredGroups.find(g => g.subtitle.toLowerCase() === subtitle.toLowerCase());
+        let group = structuredGroups.find(g => g.subtitle === subtitle);
         if (!group) { group = { subtitle, images: [] }; structuredGroups.push(group); }
 
         Array.from(event.target.files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
-                group.images.push({ base64: e.target.result });
+                group.images.push({ base64: e.target.result, file: file });
                 renderPreviews();
             };
             reader.readAsDataURL(file);
         });
+        event.target.value = ''; // Reset agar bisa upload file yang sama kembali
     }
 
     function renderPreviews() {
@@ -68,8 +68,7 @@
         structuredGroups.forEach((group) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            // FUNGSI TAMBAH FOTO DI SINI:
-            box.innerHTML = `<strong>${group.subtitle}</strong> <button onclick="tambahFotoKeGrup('${group.subtitle}')" style="font-size:10px; width:auto; padding:2px 5px; margin-left:10px;">+ TAMBAH</button>`;
+            box.innerHTML = `<strong>${group.subtitle}</strong>`;
             group.images.forEach(img => {
                 box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
             });
@@ -77,45 +76,18 @@
         });
     }
 
-    function tambahFotoKeGrup(subtitle) {
-        document.getElementById('currentSubtitleInput').value = subtitle;
-        document.getElementById('fileInput').click();
-    }
-
-    async function simpanKeSupabase() {
-        alert("Sedang mengupload foto ke Cloud, mohon tunggu...");
-        let fotoLinks = [];
+    async function prosesSelesai() {
+        if (structuredGroups.length === 0) return alert("Belum ada foto!");
+        alert("Sedang mengupload ke Storage...");
 
         try {
             for (let group of structuredGroups) {
                 for (let img of group.images) {
-                    const fileName = `foto_${Date.now()}_${Math.random()}.jpg`;
-                    const blob = await (await fetch(img.base64)).blob();
-                    
-                    const { error: uploadError } = await supabaseClient.storage
-                        .from('laporan_foto')
-                        .upload(fileName, blob);
-                    
-                    if (uploadError) throw uploadError;
-
-                    const { data } = supabaseClient.storage.from('laporan_foto').getPublicUrl(fileName);
-                    fotoLinks.push(data.publicUrl);
+                    const fileName = `${group.subtitle}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+                    await supabase.storage.from('laporan_foto').upload(fileName, img.file);
                 }
             }
-
-            const payload = {
-                nama_customer: document.getElementById('custName').value,
-                kegiatan: document.getElementById('activityName').value,
-                alamat: document.getElementById('custAddress').value,
-                tanggal: document.getElementById('installDate').value,
-                teknisi: document.getElementById('techName').value,
-                foto_data: fotoLinks.join(" | ") 
-            };
-
-            const { error: dbError } = await supabaseClient.from('laporan_instalasi').insert([payload]);
-            if (dbError) throw dbError;
-
-            alert("Berhasil! Foto tersimpan di Storage, Data tersimpan di Tabel.");
+            alert("Berhasil! Foto tersimpan di Storage.");
             generatePDF();
         } catch (err) {
             alert("Error: " + err.message);
@@ -123,6 +95,7 @@
     }
 
     function generatePDF() {
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
         let y = 30;
