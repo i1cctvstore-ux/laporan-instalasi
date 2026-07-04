@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Laporan Instalasi</title>
+    <!-- Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; background: #f3f5f9; padding: 20px; }
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;}
+        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .photo-group-box { background: #f9f9f9; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
     </style>
@@ -33,24 +34,31 @@
     </div>
     <div>
         <div id="photoPreviewContainer" class="card" style="min-height: 300px;"></div>
-        <button id="saveBtn" style="background: #0a1326; color: white;" onclick="prosesSelesai()">💾 Simpan ke Cloud & Download PDF</button>
+        <button id="mainBtn" style="background: #0a1326; color: white;" onclick="prosesSelesai()">💾 Simpan ke Cloud & Download PDF</button>
     </div>
 </div>
 
 <script>
-    // 1. Inisialisasi Supabase (Ganti dengan kredensial Anda)
-    const supabase = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
+    // Inisialisasi Supabase menggunakan variabel 'sb' untuk menghindari konflik
+    // PASTIKAN MENGGANTI URL DAN KEY DI BAWAH INI
+    const sb = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
     let structuredGroups = [];
 
     function triggerUpload() {
-        if (!document.getElementById('currentSubtitleInput').value.trim()) return alert("Isi subjudul dulu!");
+        const sub = document.getElementById('currentSubtitleInput').value.trim();
+        if (!sub) return alert("Isi subjudul dulu!");
         document.getElementById('fileInput').click();
     }
 
     function handleFileSelect(event) {
         const subtitle = document.getElementById('currentSubtitleInput').value.trim();
+        if (!subtitle) return;
+        
         let group = structuredGroups.find(g => g.subtitle === subtitle);
-        if (!group) { group = { subtitle, images: [] }; structuredGroups.push(group); }
+        if (!group) { 
+            group = { subtitle, images: [] }; 
+            structuredGroups.push(group); 
+        }
 
         Array.from(event.target.files).forEach(file => {
             const reader = new FileReader();
@@ -80,28 +88,28 @@
     async function prosesSelesai() {
         if (structuredGroups.length === 0) return alert("Belum ada foto!");
         
-        const btn = document.getElementById('saveBtn');
+        const btn = document.getElementById('mainBtn');
         btn.disabled = true;
-        btn.innerText = "Mengupload...";
+        btn.innerText = "Sedang Mengupload...";
 
         try {
             for (let group of structuredGroups) {
                 for (let img of group.images) {
-                    const fileExt = img.file.name.split('.').pop();
-                    const fileName = `${group.subtitle}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const fileName = `${group.subtitle}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
                     
-                    const { error } = await supabase.storage
+                    // Menggunakan variabel 'sb' yang telah didefinisikan di atas
+                    const { error } = await sb.storage
                         .from('laporan_foto')
                         .upload(fileName, img.file);
 
                     if (error) throw error;
                 }
             }
-            alert("Berhasil! Foto tersimpan di Storage.");
+            alert("Upload berhasil!");
             generatePDF();
         } catch (err) {
             console.error(err);
-            alert("Error saat upload: " + err.message);
+            alert("Gagal: " + err.message);
         } finally {
             btn.disabled = false;
             btn.innerText = "💾 Simpan ke Cloud & Download PDF";
@@ -111,23 +119,19 @@
     function generatePDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.setFontSize(18);
-        doc.text("Laporan Instalasi", 14, 20);
-        doc.setFontSize(12);
-        doc.text("Kegiatan: " + document.getElementById('activityName').value, 14, 30);
+        doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
         
-        let y = 40;
+        let y = 30;
         structuredGroups.forEach(group => {
-            doc.setFontSize(14);
             doc.text(group.subtitle, 14, y); 
             y += 10;
             group.images.forEach(img => {
-                if (y > 250) { doc.addPage(); y = 20; }
+                if (y > 240) { doc.addPage(); y = 20; }
                 doc.addImage(img.base64, 'JPEG', 14, y, 80, 60);
                 y += 70;
             });
         });
-        doc.save("Laporan_" + new Date().toLocaleDateString() + ".pdf");
+        doc.save("Laporan.pdf");
     }
 </script>
 </body>
