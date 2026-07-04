@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Laporan Instalasi</title>
-    <!-- Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -39,10 +38,14 @@
 </div>
 
 <script>
-    // Inisialisasi Supabase menggunakan variabel 'sb' untuk menghindari konflik
-    // PASTIKAN MENGGANTI URL DAN KEY DI BAWAH INI
+    // GANTI DENGAN URL DAN KEY ASLI ANDA
     const sb = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
     let structuredGroups = [];
+
+    // Fungsi untuk membersihkan teks agar aman jadi path folder/file
+    function sanitizePath(str) {
+        return str.toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    }
 
     function triggerUpload() {
         const sub = document.getElementById('currentSubtitleInput').value.trim();
@@ -94,10 +97,12 @@
 
         try {
             for (let group of structuredGroups) {
+                // Menggunakan fungsi sanitizePath agar folder aman
+                const safeFolder = sanitizePath(group.subtitle);
+                
                 for (let img of group.images) {
-                    const fileName = `${group.subtitle}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+                    const fileName = `${safeFolder}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
                     
-                    // Menggunakan variabel 'sb' yang telah didefinisikan di atas
                     const { error } = await sb.storage
                         .from('laporan_foto')
                         .upload(fileName, img.file);
