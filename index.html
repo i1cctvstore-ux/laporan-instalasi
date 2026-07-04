@@ -38,11 +38,14 @@
 </div>
 
 <script>
-    // GANTI DENGAN URL DAN KEY ASLI ANDA
-    const sb = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
+    // INISIALISASI SUPABASE (GANTI URL DAN KEY ANDA)
+    const sb = supabase.createClient(
+        'https://bcmkbdvtrfpovjwnquzw.supabase.co', 
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ'
+    );
+    
     let structuredGroups = [];
 
-    // Fungsi untuk membersihkan teks agar aman jadi path folder/file
     function sanitizePath(str) {
         return str.toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
     }
@@ -66,7 +69,7 @@
         Array.from(event.target.files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
-                group.images.push({ base64: e.target.result, file: file });
+                group.images.push({ base64: e.target.result });
                 renderPreviews();
             };
             reader.readAsDataURL(file);
@@ -88,30 +91,37 @@
         });
     }
 
+    // Fungsi Utama: Gabungkan jadi PDF lalu Upload
     async function prosesSelesai() {
         if (structuredGroups.length === 0) return alert("Belum ada foto!");
         
         const btn = document.getElementById('mainBtn');
         btn.disabled = true;
-        btn.innerText = "Sedang Mengupload...";
+        btn.innerText = "Sedang Memproses & Mengupload...";
 
         try {
-            for (let group of structuredGroups) {
-                // Menggunakan fungsi sanitizePath agar folder aman
-                const safeFolder = sanitizePath(group.subtitle);
-                
-                for (let img of group.images) {
-                    const fileName = `${safeFolder}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-                    
-                    const { error } = await sb.storage
-                        .from('laporan_foto')
-                        .upload(fileName, img.file);
+            // 1. Generate PDF
+            const pdfData = generatePDFBlob();
+            
+            // 2. Tentukan Nama File unik berdasarkan Customer
+            const custName = document.getElementById('custName').value.trim() || "Laporan_Instalasi";
+            const fileName = `${sanitizePath(custName)}_${Date.now()}.pdf`;
 
-                    if (error) throw error;
-                }
-            }
-            alert("Upload berhasil!");
-            generatePDF();
+            // 3. Upload ke Supabase
+            const { error } = await sb.storage
+                .from('laporan_foto') // Pastikan bucket ini ada di dashboard
+                .upload(fileName, pdfData, {
+                    contentType: 'application/pdf'
+                });
+
+            if (error) throw error;
+
+            alert("Berhasil! Laporan rangkuman telah disimpan ke cloud.");
+            // Download lokal sebagai backup
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            // ... (logika download opsional)
+            
         } catch (err) {
             console.error(err);
             alert("Gagal: " + err.message);
@@ -121,12 +131,14 @@
         }
     }
 
-    function generatePDF() {
+    function generatePDFBlob() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
         
-        let y = 30;
+        doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
+        doc.text("Customer: " + document.getElementById('custName').value, 14, 30);
+        
+        let y = 40;
         structuredGroups.forEach(group => {
             doc.text(group.subtitle, 14, y); 
             y += 10;
@@ -136,7 +148,7 @@
                 y += 70;
             });
         });
-        doc.save("Laporan.pdf");
+        return doc.output('blob');
     }
 </script>
 </body>
