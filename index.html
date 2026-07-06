@@ -25,7 +25,6 @@
 
 <div class="header">
     <h2>Foto → PDF Laporan Instalasi</h2>
-    <p>Isi data, unggah foto, dan buat laporan PDF Anda.</p>
 </div>
 
 <div class="grid">
@@ -39,8 +38,8 @@
         </div>
 
         <div class="card">
-            <h3>2. ALUR TAMBAH FOTO PER SUBJUDUL</h3>
-            <div class="field"><label>TULIS SUBJUDUL KELOMPOK FOTO</label><input type="text" id="currentSubtitleInput"></div>
+            <h3>2. UPDATE FOTO</h3>
+            <div class="field"><label></label><input type="text" id="currentSubtitleInput"></div>
             <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
             <button class="btn btn-secondary" onclick="triggerUpload()">📸 Pilih & Tambah Gambar Baru</button>
         </div>
@@ -48,15 +47,15 @@
 
     <div>
         <div class="card" style="min-height: 400px;">
-            <h3>3. PREVIEW PENGELOMPOKAN SUBJUDUL & GAMBAR</h3>
-            <div id="photoPreviewContainer">Belum ada data foto. Silakan unggah foto dari panel kiri.</div>
+            <h3>3. PREVIEW GAMBAR</h3>
+            <div id="photoPreviewContainer">Belum ada data foto..</div>
         </div>
         <button id="mainBtn" class="btn btn-main" onclick="prosesSelesai()">⬇ Generate & Download PDF</button>
     </div>
 </div>
 
 <script>
-    const sb = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
+    const sb = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
     let structuredGroups = [];
 
     function triggerUpload() {
