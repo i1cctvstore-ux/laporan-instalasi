@@ -6,71 +6,78 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #f3f5f9; padding: 20px; }
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .photo-group-box { background: #f9f9f9; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+        :root { --navy-950: #0a1326; --line: #e4e8f1; --paper: #f3f5f9; }
+        body { font-family: sans-serif; background: var(--paper); padding: 20px; color: #333; }
+        .header { background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 20px; }
+        .field { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 13px; color: #555; }
+        input { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 5px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-main { background: var(--navy-950); color: white; }
+        .btn-secondary { background: #e4e8f1; color: #333; }
+        .thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin: 3px; border: 1px solid #ddd; }
+        .group-item { background: #fafafa; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-<div class="grid-container">
+<div class="header">
+    <h2>Foto → PDF Laporan Instalasi</h2>
+    <p>Isi data, unggah foto, dan buat laporan PDF Anda.</p>
+</div>
+
+<div class="grid">
     <div>
         <div class="card">
-            <input type="text" id="custName" placeholder="Nama Customer">
-            <input type="text" id="activityName" placeholder="Nama Kegiatan">
-            <input type="text" id="custAddress" placeholder="Alamat">
-            <input type="date" id="installDate">
-            <input type="text" id="techName" placeholder="Teknisi">
+            <h3>1. INFO LENGKAP LAPORAN</h3>
+            <div class="field"><label>KEGIATAN / NAMA CUSTOMER</label><input type="text" id="custName"></div>
+            <div class="field"><label>LOKASI / ALAMAT</label><input type="text" id="custAddress"></div>
+            <div class="field"><label>TANGGAL INSTALASI</label><input type="date" id="installDate"></div>
+            <div class="field"><label>TEKNISI</label><input type="text" id="techName"></div>
         </div>
+
         <div class="card">
-            <input type="text" id="currentSubtitleInput" placeholder="Subjudul Kelompok Foto">
+            <h3>2. ALUR TAMBAH FOTO PER SUBJUDUL</h3>
+            <div class="field"><label>TULIS SUBJUDUL KELOMPOK FOTO</label><input type="text" id="currentSubtitleInput"></div>
             <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
-            <button style="background: #e4e8f1;" onclick="triggerUpload()">📸 Pilih & Tambah Gambar</button>
+            <button class="btn btn-secondary" onclick="triggerUpload()">📸 Pilih & Tambah Gambar Baru</button>
         </div>
     </div>
+
     <div>
-        <div id="photoPreviewContainer" class="card" style="min-height: 300px;"></div>
-        <button id="mainBtn" style="background: #0a1326; color: white;" onclick="prosesSelesai()">💾 Simpan ke Cloud & Download PDF</button>
+        <div class="card" style="min-height: 400px;">
+            <h3>3. PREVIEW PENGELOMPOKAN SUBJUDUL & GAMBAR</h3>
+            <div id="photoPreviewContainer">Belum ada data foto. Silakan unggah foto dari panel kiri.</div>
+        </div>
+        <button id="mainBtn" class="btn btn-main" onclick="prosesSelesai()">⬇ Generate & Download PDF</button>
     </div>
 </div>
 
 <script>
-    const sb = supabase.createClient(
-        'https://bcmkbdvtrfpovjwnquzw.supabase.co', 
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ'
-    );
-    
+    const sb = supabase.createClient('https://bcmkbdvtrfpovjwnquzw.supabase.co/rest/v1/', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ');
     let structuredGroups = [];
-
-    function sanitizePath(str) {
-        return str.toString().replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    }
 
     function triggerUpload() {
         const sub = document.getElementById('currentSubtitleInput').value.trim();
-        if (!sub) return alert("Isi subjudul dulu untuk menambahkan foto!");
+        if (!sub) return alert("Isi subjudul dulu!");
         document.getElementById('fileInput').click();
     }
 
-    // Menangani penambahan foto (bisa ke subjudul baru atau menambah ke yang sudah ada)
     function handleFileSelect(event) {
         const subtitle = document.getElementById('currentSubtitleInput').value.trim();
         if (!subtitle) return;
         
         let group = structuredGroups.find(g => g.subtitle === subtitle);
-        if (!group) { 
-            group = { subtitle, images: [] }; 
-            structuredGroups.push(group); 
-        }
+        if (!group) { group = { subtitle, images: [] }; structuredGroups.push(group); }
 
-        Array.from(event.target.files).forEach(file => {
+        const files = Array.from(event.target.files);
+        files.forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 group.images.push({ base64: e.target.result });
-                renderPreviews();
+                renderPreviews(); // Refresh preview setiap ada gambar baru
             };
             reader.readAsDataURL(file);
         });
@@ -79,15 +86,19 @@
 
     function renderPreviews() {
         const container = document.getElementById('photoPreviewContainer');
+        if (structuredGroups.length === 0) return;
+        
         container.innerHTML = '';
         structuredGroups.forEach((group) => {
-            const box = document.createElement('div');
-            box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong> (${group.images.length} foto)<br>`;
-            group.images.forEach(img => {
-                box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
-            });
-            container.appendChild(box);
+            const div = document.createElement('div');
+            div.className = 'group-item';
+            div.innerHTML = `
+                <strong>${group.subtitle}</strong> (${group.images.length} foto)
+                <div style="display:flex; flex-wrap:wrap; margin-top:8px;">
+                    ${group.images.map(img => `<img src="${img.base64}" class="thumb">`).join('')}
+                </div>
+            `;
+            container.appendChild(div);
         });
     }
 
@@ -95,63 +106,34 @@
         if (structuredGroups.length === 0) return alert("Belum ada foto!");
         
         const btn = document.getElementById('mainBtn');
-        btn.disabled = true;
-        btn.innerText = "Sedang Memproses & Mengupload...";
+        btn.disabled = true; btn.innerText = "Memproses...";
 
         try {
-            const pdfData = generatePDFBlob();
-            const custName = document.getElementById('custName').value.trim() || "Laporan_Instalasi";
-            const fileName = `${sanitizePath(custName)}_${Date.now()}.pdf`;
-
-            const { error } = await sb.storage
-                .from('laporan_foto')
-                .upload(fileName, pdfData, { contentType: 'application/pdf' });
-
-            if (error) throw error;
-
-            alert("Berhasil! Laporan telah disimpan di cloud.");
-        } catch (err) {
-            console.error(err);
-            alert("Gagal: " + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "💾 Simpan ke Cloud & Download PDF";
-        }
-    }
-
-    function generatePDFBlob() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        structuredGroups.forEach((group, index) => {
-            if (index > 0) doc.addPage();
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             
-            doc.setFontSize(16);
-            doc.text(group.subtitle, 14, 20);
-            
-            let x = 14; 
-            let y = 30;
-            const imgWidth = 85; 
-            const imgHeight = 60;
-            
-            group.images.forEach((img, i) => {
-                if (i > 0 && i % 2 === 0) {
-                    x = 14;
-                    y += (imgHeight + 10);
-                } else if (i > 0) {
-                    x = 14 + imgWidth + 5;
-                }
-                
-                if (y + imgHeight > 280) {
-                    doc.addPage();
-                    y = 20;
-                    x = 14;
-                }
-
-                doc.addImage(img.base64, 'JPEG', x, y, imgWidth, imgHeight);
+            structuredGroups.forEach((group, idx) => {
+                if (idx > 0) doc.addPage();
+                doc.setFontSize(16);
+                doc.text(group.subtitle, 14, 20);
+                group.images.forEach((img, i) => {
+                    doc.addImage(img.base64, 'JPEG', 14 + (i%2*90), 30 + (Math.floor(i/2)*70), 85, 60);
+                });
             });
-        });
-        return doc.output('blob');
+
+            const pdfData = doc.output('blob');
+            const custName = document.getElementById('custName').value.trim() || "Laporan";
+            const fileName = `laporan_${custName.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+
+            const { error } = await sb.storage.from('laporan_foto').upload(fileName, pdfData, { upsert: true });
+            if (error) throw error;
+            
+            alert("Berhasil disimpan di cloud!");
+        } catch (e) {
+            alert("Gagal: " + e.message);
+        } finally {
+            btn.disabled = false; btn.innerText = "⬇ Generate & Download PDF";
+        }
     }
 </script>
 </body>
