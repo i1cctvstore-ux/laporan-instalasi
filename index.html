@@ -38,7 +38,6 @@
 </div>
 
 <script>
-    // INISIALISASI SUPABASE (GANTI URL DAN KEY ANDA)
     const sb = supabase.createClient(
         'https://bcmkbdvtrfpovjwnquzw.supabase.co', 
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbWtiZHZ0cmZwb3Zqd25xdXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MjI2MjgsImV4cCI6MjA5ODI5ODYyOH0.zztNPO5Yr5gOj-TqeyhBqWA9-0CFVPP5iML5WqNv7fQ'
@@ -52,10 +51,11 @@
 
     function triggerUpload() {
         const sub = document.getElementById('currentSubtitleInput').value.trim();
-        if (!sub) return alert("Isi subjudul dulu!");
+        if (!sub) return alert("Isi subjudul dulu untuk menambahkan foto!");
         document.getElementById('fileInput').click();
     }
 
+    // Menangani penambahan foto (bisa ke subjudul baru atau menambah ke yang sudah ada)
     function handleFileSelect(event) {
         const subtitle = document.getElementById('currentSubtitleInput').value.trim();
         if (!subtitle) return;
@@ -83,7 +83,7 @@
         structuredGroups.forEach((group) => {
             const box = document.createElement('div');
             box.className = 'photo-group-box';
-            box.innerHTML = `<strong>${group.subtitle}</strong><br>`;
+            box.innerHTML = `<strong>${group.subtitle}</strong> (${group.images.length} foto)<br>`;
             group.images.forEach(img => {
                 box.innerHTML += `<img src="${img.base64}" style="width:50px; height:50px; object-fit:cover; margin:2px;">`;
             });
@@ -91,7 +91,6 @@
         });
     }
 
-    // Fungsi Utama: Gabungkan jadi PDF lalu Upload
     async function prosesSelesai() {
         if (structuredGroups.length === 0) return alert("Belum ada foto!");
         
@@ -100,28 +99,17 @@
         btn.innerText = "Sedang Memproses & Mengupload...";
 
         try {
-            // 1. Generate PDF
             const pdfData = generatePDFBlob();
-            
-            // 2. Tentukan Nama File unik berdasarkan Customer
             const custName = document.getElementById('custName').value.trim() || "Laporan_Instalasi";
             const fileName = `${sanitizePath(custName)}_${Date.now()}.pdf`;
 
-            // 3. Upload ke Supabase
             const { error } = await sb.storage
-                .from('laporan_foto') // Pastikan bucket ini ada di dashboard
-                .upload(fileName, pdfData, {
-                    contentType: 'application/pdf'
-                });
+                .from('laporan_foto')
+                .upload(fileName, pdfData, { contentType: 'application/pdf' });
 
             if (error) throw error;
 
-            alert("Berhasil! Laporan rangkuman telah disimpan ke cloud.");
-            // Download lokal sebagai backup
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            // ... (logika download opsional)
-            
+            alert("Berhasil! Laporan telah disimpan di cloud.");
         } catch (err) {
             console.error(err);
             alert("Gagal: " + err.message);
@@ -135,17 +123,32 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        doc.text("Laporan: " + document.getElementById('activityName').value, 14, 20);
-        doc.text("Customer: " + document.getElementById('custName').value, 14, 30);
-        
-        let y = 40;
-        structuredGroups.forEach(group => {
-            doc.text(group.subtitle, 14, y); 
-            y += 10;
-            group.images.forEach(img => {
-                if (y > 240) { doc.addPage(); y = 20; }
-                doc.addImage(img.base64, 'JPEG', 14, y, 80, 60);
-                y += 70;
+        structuredGroups.forEach((group, index) => {
+            if (index > 0) doc.addPage();
+            
+            doc.setFontSize(16);
+            doc.text(group.subtitle, 14, 20);
+            
+            let x = 14; 
+            let y = 30;
+            const imgWidth = 85; 
+            const imgHeight = 60;
+            
+            group.images.forEach((img, i) => {
+                if (i > 0 && i % 2 === 0) {
+                    x = 14;
+                    y += (imgHeight + 10);
+                } else if (i > 0) {
+                    x = 14 + imgWidth + 5;
+                }
+                
+                if (y + imgHeight > 280) {
+                    doc.addPage();
+                    y = 20;
+                    x = 14;
+                }
+
+                doc.addImage(img.base64, 'JPEG', x, y, imgWidth, imgHeight);
             });
         });
         return doc.output('blob');
